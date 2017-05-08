@@ -3,7 +3,7 @@ CC = g++
 # ifeq ($(shell sw_vers 2>/dev/null | grep Mac | awk '{ print $$2}'),Mac)
 CFLAGS = -g -DGL_GLEXT_PROTOTYPES -DGL_DO_NOT_WARN_IF_MULTI_GL_VERSION_HEADERS_INCLUDED -DOSX -Wno-deprecated-register -Wno-deprecated-declarations -Wno-shift-op-parentheses -Wno-parentheses-equality
 INCFLAGS = -I./glm-0.9.7.1 -I/usr/X11/include -I./include/
-LDFLAGS = -framework GLUT -framework OpenGL -lglfw -framework Cocoa -framework IOKit -framework CoreVideo -L./lib/osx/ \
+LDFLAGS = -framework GLUT -framework OpenGL -lglew -lglfw -framework Cocoa -framework IOKit -framework CoreVideo -L./lib/osx/ \
 		-L"/System/Library/Frameworks/OpenGL.framework/Libraries" \
 		-lGL -lGLU -lm -lstdc++ -lfreeimage
 # for linux
