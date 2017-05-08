@@ -16,6 +16,9 @@
 #include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 
 GLuint initShader(GLenum shaderType, const char * filename);
 std::string textFileRead (const char * filename);
@@ -25,12 +28,18 @@ GLuint initShaderProgram(GLuint * shaders, int num);
 void initTriangleBuffers(GLfloat * vertices, int size, GLuint & VBO, GLuint & VAO);
 void scaleVertices(GLfloat * vertices, int size, GLfloat scale);
 void translateVertices(GLfloat * vertices, int size, GLfloat x, GLfloat y, GLfloat z);
-void updateVertices(GLfloat * vertices, int size);
+void updateTransformation();
+void transformVertices(GLfloat * input, GLfloat * output, int size, glm::mat4 transf);
 
 enum Mode { scale, translation, rotation, null};
 Mode actionMode = null;
 
 bool upFlag = FALSE, downFlag = FALSE, rightFlag = FALSE, leftFlag = FALSE;
+
+glm::mat4 scaleMat4;
+glm::mat4 translationMat4;
+glm::mat4 rotationMat4;
+
 
 //create a triangle vertices in Normalized Device Coordinate
 GLfloat vertices[] = {
@@ -41,7 +50,7 @@ GLfloat vertices[] = {
 
 int main(int argc,char* argv[]) {
 
-	GLFWwindow * window = initWindow(800, 600, "Learn OpenGL");
+	GLFWwindow * window = initWindow(800, 800, "Learn OpenGL");
 	if(window == NULL)
 		return -1;
 
@@ -69,12 +78,14 @@ int main(int argc,char* argv[]) {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-
-
-		updateVertices(vertices, 9);
+		//update transformation matrix
+		updateTransformation();
+		GLfloat newVertices[9];
+		glm::mat4 transf = translationMat4 * rotationMat4 * scaleMat4;
+		transformVertices(vertices, newVertices, 9, transf);
 
 		//animation vertices update
-		initTriangleBuffers(vertices, sizeof(vertices), VBO, VAO);
+		initTriangleBuffers(newVertices, sizeof(newVertices), VBO, VAO);
 
 		//draw triangle
 		glUseProgram(shaderProgram);
@@ -309,65 +320,70 @@ void initTriangleBuffers(GLfloat * vertices, int size, GLuint & VBO, GLuint & VA
 		glBindVertexArray(0);
 }
 
-void scaleVertices(GLfloat * vertices, int size, GLfloat x, GLfloat y, GLfloat z){
+
+void transformVertices(GLfloat * input, GLfloat * output, int size, glm::mat4 transf){
 	for(int i = 0; i < size; i += 3){
-		vertices[i] *= x;
-		vertices[i+1] *= y;
-		vertices[i+2] *= z;
+		glm::vec4 newPosition = transf * glm::vec4(input[i], input[i+1], input[i+2], 1.0f);
+		output[i] = newPosition.x;
+		output[i+1] = newPosition.y;
+		output[i+2] = newPosition.z;
 	}
 }
 
-void translateVertices(GLfloat * vertices, int size, GLfloat x, GLfloat y, GLfloat z){
-	for(int i = 0; i < size; i += 3){
-		vertices[i] += x;
-		vertices[i+1] += y;
-		vertices[i+2] += z;
-	}
-}
-void updateVertices(GLfloat * vertices, int size){
-	GLfloat x, y;
+void updateTransformation(){
+	glm::mat4 identity;
+	static GLfloat scalex = 1.0f,
+				 scaley = 1.0f, 
+				 scalez = 1.0f, 
+				 transx = 0.0f, 
+				 transy = 0.0f, 
+				 transz = 0.0f, 
+				 degree = 0.0f;
+
 	switch(actionMode){
 		case scale:
   		std::cerr << "scale vertices" << std::endl;
   		if(upFlag)
-				y = 1.01f;
+				scaley += 0.01f;
 			else if(downFlag)
-				y = 0.99f;
-			else 
-				y = 1.0f;
+				scaley -= 0.01f;
 
 			if(rightFlag)
-				x = 1.01f;
+				scalex += 0.01f;
 			else if(leftFlag)
-				x = 0.99f;
-			else
-				x = 1.0f;
+				scalex -= 0.01f;
 
-			scaleVertices(vertices, size, x, y, 1.0f);
+			if(upFlag || downFlag || rightFlag || leftFlag)
+				scaleMat4 = glm::scale(identity, glm::vec3(scalex, scaley, scalez));  
 			break;
 		case translation:
   		std::cerr << "translate vertices" << std::endl;
   		if(upFlag)
-				y = 0.01f;
+				transy += 0.01f;
 			else if(downFlag)
-				y = -0.01f;
-			else 
-				y = 0.0f;
+				transy -= 0.01f;
 
 			if(rightFlag)
-				x = 0.01f;
+				transx += 0.01f;
 			else if(leftFlag)
-				x = -0.01f;
-			else
-				x = 0.0f;
-
-			translateVertices(vertices, size, x, y, 0.0f);
+				transx -= 0.01f;
+			if(upFlag || downFlag || rightFlag || leftFlag)
+				translationMat4 = glm::translate(identity, glm::vec3(transx, transy, transz));
+			// translateVertices(vertices, size, x, y, z);
 			break;
 		case rotation:
+			if(rightFlag)
+				degree -= 1.0f;
+			else if(leftFlag)
+				degree += 1.0f;
+
+			if(rightFlag || leftFlag)
+				rotationMat4 = glm::rotate(identity, glm::radians(degree), glm::vec3(0.0, 0.0, 1.0));
+			// transformVertices(vertices, 9, trans);
 			std::cerr << "rotate vertices" << std::endl;
 			break;
 		case null:
-		  std::cerr << "do nothing withm vertices" << std::endl;
+		  std::cerr << "do nothing with vertices" << std::endl;
 			break;
 	}
 }
