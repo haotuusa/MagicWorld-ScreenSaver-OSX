@@ -30,6 +30,7 @@ void scaleVertices(GLfloat * vertices, int size, GLfloat scale);
 void translateVertices(GLfloat * vertices, int size, GLfloat x, GLfloat y, GLfloat z);
 void updateTransformation();
 void transformVertices(GLfloat * input, GLfloat * output, int size, glm::mat4 transf);
+void animation();
 
 enum Mode { scale, translation, rotation, null};
 Mode actionMode = null;
@@ -79,7 +80,8 @@ int main(int argc,char* argv[]) {
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		//update transformation matrix
-		updateTransformation();
+		// updateTransformation();
+		animation();
 		GLfloat newVertices[9];
 		glm::mat4 transf = translationMat4 * rotationMat4 * scaleMat4;
 		transformVertices(vertices, newVertices, 9, transf);
@@ -329,6 +331,83 @@ void transformVertices(GLfloat * input, GLfloat * output, int size, glm::mat4 tr
 		output[i+2] = newPosition.z;
 	}
 }
+
+void animation(){
+	glm::mat4 identity;
+	static GLfloat scalex = 1.0f,
+				 scaley = 1.0f, 
+				 scalez = 1.0f, 
+				 transx = 0.0f, 
+				 transy = 0.0f, 
+				 transz = 0.0f, 
+				 degree = 0.0f;
+	static bool scaleUpy = TRUE;
+	static bool scaleUpx = TRUE;
+
+	switch(actionMode){
+		case scale:
+  		std::cerr << "scale vertices" << std::endl;
+  		if(scaleUpy && scaley <= 1.5f)
+				scaley += 0.01f;
+			else
+				scaleUpy = FALSE;
+
+
+			if(!scaleUpy && scaley >= 0.0f)
+				scaley -= 0.01f;
+			else
+				scaleUpy = TRUE;
+
+			if(scaleUpx && scalex <= 1.7f)
+				scalex += 0.01f;
+			else
+				scaleUpx = FALSE;
+
+			if(!scaleUpx && scalex >= 0.0f)
+				scalex -= 0.01f;
+			else
+				scaleUpx = TRUE;
+			
+				// scalex += 0.01f;
+			// else
+				// scalex -= 0.01f;
+
+			// if(upFlag || downFlag || rightFlag || leftFlag)
+			scaleMat4 = glm::scale(identity, glm::vec3(scalex, scaley, scalez));  
+			break;
+			
+		case translation:
+  	// 	std::cerr << "translate vertices" << std::endl;
+  		if(upFlag)
+				transy += 0.01f;
+			else if(downFlag)
+				transy -= 0.01f;
+
+			if(rightFlag)
+				transx += 0.01f;
+			else if(leftFlag)
+				transx -= 0.01f;
+
+			translationMat4 = glm::translate(identity, glm::vec3(transx, transy, transz));
+			break;
+		case rotation:
+			// if(rightFlag)
+			// 	degree -= 1.0f;
+			// else if(leftFlag)
+			// 	degree += 1.0f;
+
+			// if(rightFlag || leftFlag)
+			// 	rotationMat4 = glm::rotate(identity, glm::radians(degree), glm::vec3(0.0, 0.0, 1.0));
+			// // transformVertices(vertices, 9, trans);
+			// std::cerr << "rotate vertices" << std::endl;
+			break;
+		case null:
+		  std::cerr << "do nothing with vertices" << std::endl;
+			break;
+	}
+}
+
+
 
 void updateTransformation(){
 	glm::mat4 identity;
