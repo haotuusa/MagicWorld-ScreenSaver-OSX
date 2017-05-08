@@ -20,8 +20,9 @@ std::string textFileRead (const char * filename);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 GLFWwindow * initWindow(int x, int y, const char * title);
 GLuint initShaderProgram(GLuint * shaders, int num);
-void initTriangleBuffers(GLuint & VBO, GLuint & VAO);
+void initTriangleBuffers(GLfloat * vertices, int size, GLuint & VBO, GLuint & VAO);
 
+bool increase = TRUE;
 
 int main(int argc,char* argv[]) {
 
@@ -41,8 +42,15 @@ int main(int argc,char* argv[]) {
 	GLuint shaderProgram = initShaderProgram(shaders, 2);
 
 	GLuint VBO, VAO;
-	initTriangleBuffers(VBO, VAO);
+	//create a triangle vertices in Normalized Device Coordinate
+	// GLfloat vertices[] = {
+	//     -0.5f, -0.5f, 0.0f,
+	//      0.5f, -0.5f, 0.0f,
+	//      0.0f,  0.5f, 0.0f
+	// };  
+	// initTriangleBuffers(vertices, sizeof(vertices), VBO, VAO);
 
+	int frameIndex = 0;
 	//game rendering loop
 	while(!glfwWindowShouldClose(window)){
 		//check and call events
@@ -54,11 +62,25 @@ int main(int argc,char* argv[]) {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
+		//for animation
+		GLfloat offset = (GLfloat)frameIndex * 0.01f;
+		GLfloat vertices[] = {
+	    -0.5f - offset, -0.5f - offset,
+	     0.5f + offset, -0.5f - offset, 0.0f,
+	     0.0f,  0.5f + offset, 0.0f
+		};  
+		initTriangleBuffers(vertices, sizeof(vertices), VBO, VAO);
 		//draw triangle
 		glUseProgram(shaderProgram);
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 		glBindVertexArray(0);
+
+
+		if(increase)
+			frameIndex++;
+		else
+			frameIndex--;
 
 		/*-----------------------end of rendering command----------------------------*/
 
@@ -76,6 +98,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     // closing the application
     if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     	glfwSetWindowShouldClose(window, GL_TRUE);
+    if(key == GLFW_KEY_S && action == GLFW_PRESS)
+    	increase = !increase;
 }
 
 std::string textFileRead (const char * filename) {
@@ -193,13 +217,7 @@ GLuint initShaderProgram(GLuint * shaders, int num){
 	return shaderProgram;
 }
 
-void initTriangleBuffers(GLuint & VBO, GLuint & VAO){
-			//create a triangle vertices in Normalized Device Coordinate
-		GLfloat vertices[] = {
-	    -0.5f, -0.5f, 0.0f,
-	     0.5f, -0.5f, 0.0f,
-	     0.0f,  0.5f, 0.0f
-		};  
+void initTriangleBuffers(GLfloat * vertices, int size, GLuint & VBO, GLuint & VAO){
 
 		//Generate Buffer and get the ID
 		glGenBuffers(1, &VBO);
@@ -212,7 +230,7 @@ void initTriangleBuffers(GLuint & VBO, GLuint & VAO){
 
 		//copies the previously defined vertex data into the buffer's memory
 		//use GL_STATIC_DRAW because position of the triangle is unlikely to change
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_STATIC_DRAW);
 		/*GL_STATIC_DRAW: the data will most likely not change at all or very rarely.
 			GL_DYNAMIC_DRAW: the data is likely to change a lot.
 			GL_STREAM_DRAW: the data will change every time it is drawn.*/
