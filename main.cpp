@@ -55,9 +55,10 @@ int main(int argc,char* argv[]) {
 	if(window == NULL)
 		return -1;
 
-	// GLint nrAttributes;
-	// glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
-	// std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
+	//test log how many attribute available
+	GLint nrAttributes;
+	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
+	std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
 
 	//set keyboard event
 	glfwSetKeyCallback(window, key_callback); 
