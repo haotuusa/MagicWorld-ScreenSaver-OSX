@@ -15,14 +15,29 @@
 //GLFW
 #include <GLFW/glfw3.h>
 
+#include <glm/glm.hpp>
+
 GLuint initShader(GLenum shaderType, const char * filename);
 std::string textFileRead (const char * filename);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 GLFWwindow * initWindow(int x, int y, const char * title);
 GLuint initShaderProgram(GLuint * shaders, int num);
 void initTriangleBuffers(GLfloat * vertices, int size, GLuint & VBO, GLuint & VAO);
+void scaleVertices(GLfloat * vertices, int size, GLfloat scale);
+void translateVertices(GLfloat * vertices, int size, GLfloat x, GLfloat y, GLfloat z);
+void updateVertices(GLfloat * vertices, int size);
 
-bool increase = TRUE;
+enum Mode { scale, translation, rotation, null};
+Mode actionMode = null;
+
+bool upFlag = FALSE, downFlag = FALSE, rightFlag = FALSE, leftFlag = FALSE;
+
+//create a triangle vertices in Normalized Device Coordinate
+GLfloat vertices[] = {
+  -0.5f, -0.5f, 0.0f,
+   0.5f, -0.5f, 0.0f,
+   0.0f,  0.5f, 0.0f
+};  
 
 int main(int argc,char* argv[]) {
 
@@ -42,15 +57,7 @@ int main(int argc,char* argv[]) {
 	GLuint shaderProgram = initShaderProgram(shaders, 2);
 
 	GLuint VBO, VAO;
-	//create a triangle vertices in Normalized Device Coordinate
-	// GLfloat vertices[] = {
-	//     -0.5f, -0.5f, 0.0f,
-	//      0.5f, -0.5f, 0.0f,
-	//      0.0f,  0.5f, 0.0f
-	// };  
-	// initTriangleBuffers(vertices, sizeof(vertices), VBO, VAO);
 
-	int frameIndex = 0;
 	//game rendering loop
 	while(!glfwWindowShouldClose(window)){
 		//check and call events
@@ -62,14 +69,13 @@ int main(int argc,char* argv[]) {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		//for animation
-		GLfloat offset = (GLfloat)frameIndex * 0.01f;
-		GLfloat vertices[] = {
-	    -0.5f - offset, -0.5f - offset,
-	     0.5f + offset, -0.5f - offset, 0.0f,
-	     0.0f,  0.5f + offset, 0.0f
-		};  
+
+
+		updateVertices(vertices, 9);
+
+		//animation vertices update
 		initTriangleBuffers(vertices, sizeof(vertices), VBO, VAO);
+
 		//draw triangle
 		glUseProgram(shaderProgram);
 		glBindVertexArray(VAO);
@@ -77,10 +83,6 @@ int main(int argc,char* argv[]) {
 		glBindVertexArray(0);
 
 
-		if(increase)
-			frameIndex++;
-		else
-			frameIndex--;
 
 		/*-----------------------end of rendering command----------------------------*/
 
@@ -98,8 +100,70 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     // closing the application
     if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     	glfwSetWindowShouldClose(window, GL_TRUE);
-    if(key == GLFW_KEY_S && action == GLFW_PRESS)
-    	increase = !increase;
+
+    if(key == GLFW_KEY_S && action == GLFW_PRESS){
+    	std::cerr << "scale mode" << std::endl;
+    	actionMode = scale;
+    }
+
+    if(key == GLFW_KEY_T && action == GLFW_PRESS){
+    	std::cerr << "translation mode" << std::endl;
+    	actionMode = translation;
+    }
+
+    if(key == GLFW_KEY_R && action == GLFW_PRESS){
+    	std::cerr << "rotation mode" << std::endl;
+    	actionMode = rotation;
+    }
+    if(key == GLFW_KEY_N && action == GLFW_PRESS){
+    	std::cerr << "do nothing mode" << std::endl;
+    	actionMode = null;
+    }
+
+    if(key == GLFW_KEY_UP){
+    	if(action == GLFW_PRESS){
+	    	std::cerr << "Up pressed" << std::endl;
+	    	upFlag = TRUE;
+    	}
+    	else if(action == GLFW_RELEASE){
+	    	std::cerr << "Up released" << std::endl;
+	    	upFlag = FALSE;
+    	}
+    }
+
+    if(key == GLFW_KEY_DOWN){
+    	if(action == GLFW_PRESS){
+	    	std::cerr << "Down pressed" << std::endl;
+	    	downFlag = TRUE;
+    	}
+    	else if(action == GLFW_RELEASE){
+	    	std::cerr << "Down released" << std::endl;
+	    	downFlag = FALSE;
+    	}
+    }
+
+    if(key == GLFW_KEY_LEFT){
+    	if(action == GLFW_PRESS){
+	    	std::cerr << "Left pressed" << std::endl;
+	    	leftFlag = TRUE;
+    	}
+    	else if(action == GLFW_RELEASE){
+	    	std::cerr << "Left released" << std::endl;
+	    	leftFlag = FALSE;
+    	}
+    }
+
+    if(key == GLFW_KEY_RIGHT){
+    	if(action == GLFW_PRESS){
+	    	std::cerr << "Right pressed" << std::endl;
+	    	rightFlag = TRUE;
+    	}
+    	else if(action == GLFW_RELEASE){
+	    	std::cerr << "Right released" << std::endl;
+	    	rightFlag = FALSE;
+    	}
+    }
+
 }
 
 std::string textFileRead (const char * filename) {
@@ -242,5 +306,68 @@ void initTriangleBuffers(GLfloat * vertices, int size, GLuint & VBO, GLuint & VA
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 		//unbind VAO
-		glBindVertexArray(0);;
+		glBindVertexArray(0);
+}
+
+void scaleVertices(GLfloat * vertices, int size, GLfloat x, GLfloat y, GLfloat z){
+	for(int i = 0; i < size; i += 3){
+		vertices[i] *= x;
+		vertices[i+1] *= y;
+		vertices[i+2] *= z;
+	}
+}
+
+void translateVertices(GLfloat * vertices, int size, GLfloat x, GLfloat y, GLfloat z){
+	for(int i = 0; i < size; i += 3){
+		vertices[i] += x;
+		vertices[i+1] += y;
+		vertices[i+2] += z;
+	}
+}
+void updateVertices(GLfloat * vertices, int size){
+	GLfloat x, y;
+	switch(actionMode){
+		case scale:
+  		std::cerr << "scale vertices" << std::endl;
+  		if(upFlag)
+				y = 1.01f;
+			else if(downFlag)
+				y = 0.99f;
+			else 
+				y = 1.0f;
+
+			if(rightFlag)
+				x = 1.01f;
+			else if(leftFlag)
+				x = 0.99f;
+			else
+				x = 1.0f;
+
+			scaleVertices(vertices, size, x, y, 1.0f);
+			break;
+		case translation:
+  		std::cerr << "translate vertices" << std::endl;
+  		if(upFlag)
+				y = 0.01f;
+			else if(downFlag)
+				y = -0.01f;
+			else 
+				y = 0.0f;
+
+			if(rightFlag)
+				x = 0.01f;
+			else if(leftFlag)
+				x = -0.01f;
+			else
+				x = 0.0f;
+
+			translateVertices(vertices, size, x, y, 0.0f);
+			break;
+		case rotation:
+			std::cerr << "rotate vertices" << std::endl;
+			break;
+		case null:
+		  std::cerr << "do nothing withm vertices" << std::endl;
+			break;
+	}
 }
