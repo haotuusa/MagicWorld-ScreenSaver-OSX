@@ -4,6 +4,7 @@
 #include <sstream>
 #include <fstream>
 #include <cstring>
+#include <stdlib.h>
 
 //for drawing or reading image
 #include <FreeImage.h>
@@ -35,7 +36,7 @@ void animation();
 enum Mode { scale, translation, rotation, null};
 Mode actionMode = null;
 
-bool upFlag = FALSE, downFlag = FALSE, rightFlag = FALSE, leftFlag = FALSE;
+bool upFlag = FALSE, downFlag = FALSE, rightFlag = FALSE, leftFlag = FALSE, edge = TRUE;
 
 glm::mat4 scaleMat4;
 glm::mat4 translationMat4;
@@ -86,7 +87,7 @@ int main(int argc,char* argv[]) {
 
 		//update transformation matrix
 		// updateTransformation();
-		// animation();
+		animation();
 		GLfloat newVertices[9];
 		glm::mat4 transf = translationMat4 * rotationMat4 * scaleMat4;
 		transformVertices(vertices, newVertices, 9, transf);
@@ -96,6 +97,24 @@ int main(int argc,char* argv[]) {
 
 		//draw triangle
 		glUseProgram(shaderProgram);
+
+
+	   // Update the uniform color
+    GLfloat timeValue = glfwGetTime();
+    GLfloat randColorValue = (sin(timeValue * 2)/2) + 0.5;
+    GLint vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
+    static GLfloat myColor[] = {0.0f, 0.0f, 0.0f, 1.0f};
+    static int randomIndex = 1;
+
+    if(edge){
+    	randomIndex = (int)(rand() % 3);
+	    std::cerr << "randomIndex: " << randomIndex << std::endl;
+    }
+
+    myColor[randomIndex] = randColorValue;
+    glUniform4fv(vertexColorLocation, 1, myColor);
+
+
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 		glBindVertexArray(0);
@@ -239,7 +258,7 @@ GLFWwindow * initWindow(int x, int y, const char * title){
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	//window not resizable by the user
-	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
 	//for OS X
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -349,80 +368,80 @@ void animation(){
 	static bool scaleUpy = TRUE, scaleUpx = TRUE,
 							transUpy = TRUE, transUpx = TRUE,
 							rotateClock = TRUE;
+	// case scale:
+	if(scaleUpy){
+		scaley += 0.012f;
+		if(scaley > 1.5f)
+			scaleUpy = FALSE;
+	}
+	else{
+		scaley -= 0.012f;
+		if(scaley < -1.5f)
+			scaleUpy = TRUE;
+	}
 
-	// switch(actionMode){
-		// case scale:
-  		// std::cerr << "scale vertices" << std::endl;
-  		if(scaleUpy && scaley <= 1.5f)
-				scaley += 0.012f;
-			else
-				scaleUpy = FALSE;
+	if(scaleUpx){
+		scalex += 0.01f;
+		if(scalex > 1.7f)
+			scaleUpx = FALSE;
+	}
+	else{
+		scalex -= 0.01f;
+		if(scalex < -1.7f)
+			scaleUpx = TRUE;
+	}
 
-			if(!scaleUpy && scaley >= 0.0f)
-				scaley -= 0.012f;
-			else
-				scaleUpy = TRUE;
+	scaleMat4 = glm::scale(identity, glm::vec3(scalex, scaley, scalez));  
 
-			if(scaleUpx && scalex <= 1.7f)
-				scalex += 0.01f;
-			else
-				scaleUpx = FALSE;
+	// case translation:
+	if(transUpy){
+		edge = FALSE;
+		transy += 0.015f;
+		if(transy > 0.5f){
+			transUpy = FALSE;
+			edge = TRUE;
+		}
+	}
+	else{
+		edge = FALSE;
+		transy -= 0.015f;
+		if(transy < -0.5f){
+			transUpy = TRUE;
+			edge = TRUE;
+		}
+	}
 
-			if(!scaleUpx && scalex >= 0.0f)
-				scalex -= 0.01f;
-			else
-				scaleUpx = TRUE;
+	if(transUpx){
+		// edge = FALSE;
+		transx += 0.01f;
+		if(transx > 0.5f){
+			transUpx = FALSE;
+			edge = TRUE;
+		}
+	}
+	else{
+		// edge = FALSE;
+		transx -= 0.01f;
+		if(transx < -0.5f){
+			transUpx = TRUE;
+			edge = TRUE;
+		}
+	}
 
+	translationMat4 = glm::translate(identity, glm::vec3(transx, transy, transz));
 
-			// if(upFlag || downFlag || rightFlag || leftFlag)
-			scaleMat4 = glm::scale(identity, glm::vec3(scalex, scaley, scalez));  
-			// std::cerr << "animate scaling" << std::endl;
-			// break;
-
-		// case translation:
-  	// 	std::cerr << "translate vertices" << std::endl;
-  		if(transUpy && transy <= 0.5f)
-				transy += 0.015f;
-			else
-				transUpy = FALSE;
-
-			if(!transUpy && transy >= -0.5f)
-				transy -= 0.015f;
-			else
-				transUpy = TRUE;
-
-  		if(transUpx && transx <= 0.5f)
-				transx += 0.01f;
-			else
-				transUpx = FALSE;
-
-			if(!transUpx && transx >= -0.5f)
-				transx -= 0.01f;
-			else
-				transUpx = TRUE;
-
-			translationMat4 = glm::translate(identity, glm::vec3(transx, transy, transz));
-			// std::cerr << "animate translation" << std::endl;
-			// break;
-		// case rotation:
-		  if(rotateClock && degree >= -180.0f)
-				degree -= 2.0f;
-			else
-				rotateClock = FALSE;
-
-			if(!rotateClock && degree <= 180.0f)
-				degree += 2.0f;
-			else
-				rotateClock = TRUE;
-
-			// if(rightFlag || leftFlag)
-			rotationMat4 = glm::rotate(identity, glm::radians(degree), glm::vec3(0.0, 0.0, 1.0));
-			// std::cerr << "animate rotation" << std::endl;
-			// break;
-		// case null:
-		  // std::cerr << "do nothing with vertices" << std::endl;
-			// break;
-	// }
+	// case rotation:
+	if(rotateClock){
+		degree -= 2.0f;
+		if(degree < -180.0f)
+			rotateClock = FALSE;
+	}
+	else{
+		degree += 2.0f;
+		if(degree > 180.0f)
+			rotateClock = TRUE;
+	}
+	rotationMat4 = glm::rotate(identity, glm::radians(degree), glm::vec3(0.0, 0.0, 1.0));
 }
 
 
